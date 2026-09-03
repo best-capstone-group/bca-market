@@ -1,15 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 
 const STORAGE_KEY = 'banner_dismissed';
 
 export default function UpdateBanner() {
+  const { data: session, status } = useSession();
+  const pathname = usePathname();
   const [shouldRender, setShouldRender] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    if (status !== 'authenticated' || !session?.user || pathname?.startsWith('/auth')) {
+      return;
+    }
+
     const isDismissed = localStorage.getItem(STORAGE_KEY);
     if (!isDismissed) {
       setShouldRender(true);
@@ -18,7 +26,7 @@ export default function UpdateBanner() {
       }, 50);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [status, session, pathname]);
 
   const handleDismiss = () => {
     setIsOpen(false);
@@ -40,8 +48,8 @@ export default function UpdateBanner() {
       <div className="fixed top-4 sm:top-8 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
         <div
           className={`pointer-events-auto w-full max-w-2xl rounded-lg border border-zinc-200/90 bg-white p-6 sm:p-8 shadow-2xl transition-all duration-500 ease-out ${isOpen
-            ? 'translate-y-0 opacity-100 scale-100'
-            : '-translate-y-20 opacity-0 scale-95'
+              ? 'translate-y-0 opacity-100 scale-100'
+              : '-translate-y-20 opacity-0 scale-95'
             }`}
         >
           <div className="flex items-start justify-between gap-4">
@@ -51,9 +59,9 @@ export default function UpdateBanner() {
                   Welcome to BCA Market!
                 </h2>
                 <p className="mt-2 text-sm sm:text-base leading-relaxed text-zinc-600">
-                  Welcome to the 2026-2027 school year! If you have any questions, need assistance, 
-                  or would like to report a concern regarding a market, 
-                  please feel free to contact us at <a href="mailto:bcamarketsupport@gmail.com" className="text-blue-600 hover:underline">bcamarketsupport@gmail.com</a>. 
+                  Welcome to the 2026-2027 school year! If you have any questions, need assistance,
+                  or would like to report a concern regarding a market,
+                  please feel free to contact us at <a href="mailto:bcamarketsupport@gmail.com" className="text-blue-600 hover:underline">bcamarketsupport@gmail.com</a>.
                 </p>
               </div>
             </div>

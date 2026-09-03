@@ -43,8 +43,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
-        <UpdateBanner />
-        <NextAuthProvider>{children}</NextAuthProvider>
+        <NextAuthProvider>
+          <UpdateBanner />
+          {children}
+        </NextAuthProvider>
         {/* <p>BCA Market is under maintenance. Please check back later.</p> */}
       </body>
     </html>
