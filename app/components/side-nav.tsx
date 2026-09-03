@@ -36,7 +36,6 @@ export default async function SideNav({ currentMarketId, unreadCount }: SideNavP
       ...(user?.admin ? {} : { hidden: false }),
     },
     orderBy: [{ closeTime: "asc" }, { createdAt: "desc" }],
-    take: 20,
     select: {
       id: true,
       title: true,
