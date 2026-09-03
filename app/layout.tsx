@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextAuthProvider } from "./providers";
+import UpdateBanner from "./components/update-banner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
     default: "BCA Market",
     template: "%s | BCA Market",
   },
-  description: "Trade on real school events. See where the community stands before outcomes are decided.",
+  description: "BCA's very own prediction market. See where the community stands before outcomes are decided.",
   metadataBase: new URL(process.env.NEXTAUTH_URL || "http://localhost:3000"),
   openGraph: {
     siteName: "BCA Market",
@@ -42,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <UpdateBanner />
         <NextAuthProvider>{children}</NextAuthProvider>
         {/* <p>BCA Market is under maintenance. Please check back later.</p> */}
       </body>
