@@ -41,5 +41,11 @@
     "prisma": "^7.9.0",
     "tailwindcss": "^4",
     "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "prisma@7.10.0": true,
+    "protobufjs@7.6.5": true,
+    "unrs-resolver@1.12.2": true,
+    "@prisma/engines@7.10.0": true
   }
 }
