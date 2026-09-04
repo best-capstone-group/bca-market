@@ -4,6 +4,9 @@ import { NextAuthProvider } from "./providers";
 import UpdateBanner from "./components/update-banner";
 import "./globals.css";
 
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -46,6 +49,8 @@ export default function RootLayout({
         <NextAuthProvider>
           <UpdateBanner />
           {children}
+          <Analytics />
+          <SpeedInsights />
         </NextAuthProvider>
         {/* <p>BCA Market is under maintenance. Please check back later.</p> */}
       </body>
