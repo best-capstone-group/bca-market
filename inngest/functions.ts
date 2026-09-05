@@ -270,7 +270,7 @@ export const onMarketResolved = inngest.createFunction(
                                     `Congratulations, ${name}!`,
                                     `<p>The market <strong>"${title}"</strong> has resolved.</p>
                                      <p style="padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
-                                       <strong style="color:#15803d;">✓ Your outcome won: ${p.outcomeName}</strong><br>
+                                       <strong style="color:#15803d;">Your outcome won: ${p.outcomeName}</strong><br>
                                        <span style="color:#166534;">Payout: <strong>$${p.payout.toFixed(2)}</strong></span>
                                      </p>
                                      ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
@@ -367,7 +367,6 @@ export const onMarketDigest = inngest.createFunction(
                </a>
              </p>
              <p style="margin-top:40px;font-size:12px;color:#a1a1aa;">
-               You're receiving this because you have a BCA Market account.
                <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:#a1a1aa;">Unsubscribe</a> at any time.
              </p>`
         )
