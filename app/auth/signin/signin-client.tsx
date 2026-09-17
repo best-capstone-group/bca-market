@@ -54,6 +54,9 @@ export default function SignInClient() {
                     <p className="mt-5 text-lg leading-relaxed text-zinc-600">
                         Put your instincts to the test. Trade shares on real school events and see where the community stands before outcomes are decided.
                     </p>
+                    <p className="mt-3 text-md leading-relaxed text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                        <strong>Note:</strong> Please sign in with a personal account!
+                    </p>
 
                     <button
                         onClick={() => signIn("google", { callbackUrl: "/" })}
