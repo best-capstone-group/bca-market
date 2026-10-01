@@ -110,6 +110,7 @@ export default async function Home() {
                 <p className="mt-2 max-w-2xl text-zinc-600">
                   Browse active BCA prediction markets, track outcomes, and request new markets.
                 </p>
+                <p className="mt-1 text-sm text-red-500">Note: Markets may not be approved at this time: we are working on changes to the resolution process!</p>
               </div>
 
               <div className="flex flex-col items-start gap-3 md:items-end">
