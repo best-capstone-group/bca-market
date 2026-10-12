@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 import TopNav from "@/app/components/top-nav";
 import SideNav from "@/app/components/side-nav";
+import StipendButton from "@/app/components/stipend-button";
 
 import { getUnreadNotifCount } from '@/lib/notifications';
 
@@ -84,7 +85,12 @@ export default async function LeaderboardPage() {
         <SideNav unreadCount={unreadCount} />
 
         <div className="w-full mx-auto">
-          <h1 className="text-2xl font-semibold text-zinc-900 mb-1">Leaderboard</h1>
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-2xl font-semibold text-zinc-900">Leaderboard</h1>
+            {session.user.admin && (
+              <StipendButton leaderboard={leaderboard.map(u => ({ id: u.id, name: u.name, netWorth: u.netWorth }))} />
+            )}
+          </div>
           <p className="text-sm text-zinc-500 mb-6">Ordered by net worth (cash balance + position value)</p>
 
           <div className="hidden md:block overflow-x-auto">

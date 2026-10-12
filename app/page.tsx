@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import AddMarketButton from './components/add-market-button';
 import SettingsButton from './components/settings-button';
 import PortfolioButton from './components/portfolio-button';
+import ChangelogButton from './components/changelog-button';
 import MarketCard from "./components/market-card";
 import TopNav from './components/top-nav';
 import SideNav from './components/side-nav';
@@ -110,7 +111,6 @@ export default async function Home() {
                 <p className="mt-2 max-w-2xl text-zinc-600">
                   Browse active BCA prediction markets, track outcomes, and request new markets.
                 </p>
-                <p className="mt-1 text-sm text-red-500">Note: Markets may not be approved at this time: a new update is coming soon!</p>
               </div>
 
               <div className="flex flex-col items-start gap-3 md:items-end">
@@ -124,6 +124,7 @@ export default async function Home() {
                 </div>
 
                 <div className="flex flex-row items-center gap-2">
+                  <ChangelogButton />
                   <PortfolioButton />
                   <SettingsButton unreadCount={unreadCount} />
                   <AddMarketButton />
