@@ -185,8 +185,8 @@ export default async function Home() {
                   const isResolved = market.status === "RESOLVED";
                   const hasRequested = Boolean(market.resolutionRequestedAt);
 
-                  const awaitingResolutionRequest = isCreator && isClosed && !isResolved && !hasRequested;
-                  const resolutionRequested = isCreator && isClosed && !isResolved && hasRequested;
+                  const awaitingResolutionRequest = (session.user.admin || isCreator) && isClosed && !isResolved && !hasRequested;
+                  const resolutionRequested = (session.user.admin || isCreator) && isClosed && !isResolved && hasRequested;
 
                   return (!market.hidden || session.user.admin) && (
                     <div key={market.id} className="break-inside-avoid mb-6">
