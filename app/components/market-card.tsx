@@ -48,11 +48,10 @@ export default function MarketCard({ market, isAdmin }: MarketCardProps & { isAd
   const card = (
     <Link href={`/markets/${market.id}`} className={`min-w-0 flex-1 ${market.hidden ? "opacity-50" : ""}`}>
       <article
-        className={`group flex flex-col rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${
-          market.awaitingResolutionRequest
+        className={`group flex flex-col rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${market.awaitingResolutionRequest
             ? "border-red-300 ring-2 ring-red-500/20 hover:border-red-400 hover:ring-red-500/30"
             : "border-zinc-200 hover:border-sky-200"
-        }`}
+          }`}
       >
         <div className="flex items-start justify-between gap-3">
           <h2

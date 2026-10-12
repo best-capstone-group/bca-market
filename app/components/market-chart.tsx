@@ -6,7 +6,7 @@ import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis, ResponsiveContai
 
 const COLORS = ['#38bdf8', '#6366f1', '#eab308', '#f97316', '#a855f7', '#22c55e'];
 type Props = {
-  data: { timestamp: number; [key: string]: number }[];
+  data: { timestamp: number;[key: string]: number }[];
   outcomeNames: string[];
 };
 export default function MarketChart({ data, outcomeNames }: Props) {

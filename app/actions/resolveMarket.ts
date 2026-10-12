@@ -10,135 +10,135 @@ import { inngest } from "@/lib/inngest";
 import { Prisma } from "@/app/generated/prisma/client";
 
 export async function resolveMarket(input: { marketId: number, winningOutcomeId: number, message?: string }): Promise<void> {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.admin || !session.user.id) throw new Error("Unauthorized");
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.admin || !session.user.id) throw new Error("Unauthorized");
 
-    const treasuryId = Number(process.env.TREASURY_ACCOUNT_ID);
-    if (!treasuryId) throw new Error("Treasury user ID not configured");
+  const treasuryId = Number(process.env.TREASURY_ACCOUNT_ID);
+  if (!treasuryId) throw new Error("Treasury user ID not configured");
 
-    const admins = await prisma.user.findMany({
-        where: { admin: true }
-    });
-    
-    const resolveContext = await prisma.$transaction(async (tx) => {
+  const admins = await prisma.user.findMany({
+    where: { admin: true }
+  });
 
-        const market = await tx.market.findUnique({
-            where: { id: input.marketId },
-            include: { outcomes: true }
-        })
+  const resolveContext = await prisma.$transaction(async (tx) => {
 
-        if (!market) throw new Error(`Market ${input.marketId} not found`);
-        if (market.status !== 'OPEN' && market.status !== 'CLOSED') {
-            throw new Error("Market is not open or closed");
-        }
-
-        const winningOutcome = market.outcomes.find(o => o.id === input.winningOutcomeId);
-        if (!winningOutcome) throw new Error("Winning outcome not found in market");
-
-        const allPositions = await tx.position.findMany({
-            where: { marketId: input.marketId, shares: { gt: 0 } },
-        })
-
-        const winners = allPositions.filter(p => p.outcomeId === input.winningOutcomeId);
-        const losers = allPositions.filter(p => p.outcomeId !== input.winningOutcomeId);
-
-        const decTotalPayout = winners.reduce((sum, p) => sum.plus(new Prisma.Decimal(p.shares).mul(100)), new Prisma.Decimal(0));
-
-        // flatten winners and losers
-        const winnerUpdates = winners.flatMap(p => {
-            const decShares = new Prisma.Decimal(p.shares);
-            const decAvgCost = new Prisma.Decimal(p.avgCost);
-            const payout = decShares.mul(100);
-            const pnlDelta = payout.minus(decAvgCost.mul(decShares));
-            return [
-                tx.user.update({
-                    where: { id: p.userId },
-                    data: { money: { increment: payout } }
-                }),
-                tx.position.update({
-                    where: { id: p.id },
-                    data: { shares: 0, realizedPnl: { increment: pnlDelta } }
-                })
-            ]
-        })
-
-        const loserUpdates = losers.map(p => {
-            const decShares = new Prisma.Decimal(p.shares);
-            const decAvgCost = new Prisma.Decimal(p.avgCost);
-            const loss = decAvgCost.mul(decShares);
-            return tx.position.update({
-                where: { id: p.id },
-                data: { shares: 0, realizedPnl: { decrement: loss } }
-            })
-        })
-
-        await Promise.all([
-            tx.market.update({
-                where: { id: input.marketId },
-                data: {
-                    status: 'RESOLVED',
-                    resolvedOutcomeId: input.winningOutcomeId,
-                    resolvedById: Number(session.user.id),
-                    resolvedAt: new Date(),
-                }
-            }),
-
-            tx.user.update({
-                where: { id: treasuryId },
-                data: { money: { decrement: decTotalPayout } }
-            }),
-
-            ...winnerUpdates,
-            ...loserUpdates
-        ])
-
-        return {
-            marketTitle: market.title,
-            winningOutcomeName: winningOutcome.name,
-            positions: allPositions.map(p => ({
-                userId: p.userId,
-                shares: Number(p.shares),
-                outcomeName: market.outcomes.find(o => o.id === p.outcomeId)?.name ?? "Unknown",
-                isWinner: p.outcomeId === input.winningOutcomeId,
-                payout: p.outcomeId === input.winningOutcomeId ? Number(p.shares) * 100 : 0,
-            }))
-        }
+    const market = await tx.market.findUnique({
+      where: { id: input.marketId },
+      include: { outcomes: true }
     })
 
-    await prisma.notification.createMany({
-        data: 
-            admins.map(admin => ({
-                userId: admin.id,
-                type: NotificationType.RESOLUTION,
-                title: `Market Resolved: ${resolveContext.marketTitle}`,
-                body: `The market "${resolveContext.marketTitle}" has been resolved to: "${resolveContext.winningOutcomeName}".`
-            }))
-    })
-
-    if (resolveContext.positions.length > 0) {
-        await prisma.notification.createMany({
-            data: resolveContext.positions.map(p => ({
-                userId: p.userId,
-                type: NotificationType.RESOLUTION,
-                resolutionType: p.isWinner ? ResolutionType.WIN : ResolutionType.LOSS,
-                title: `Market Resolved: ${resolveContext.marketTitle}`,
-                body: p.isWinner ? `Congratulations! Your outcome "${p.outcomeName}" won. You received $${p.payout.toFixed(2)}.`
-                    : `Unfortunately, your outcome "${p.outcomeName}" lost. Better luck next time!`
-            }))
-        })
+    if (!market) throw new Error(`Market ${input.marketId} not found`);
+    if (market.status !== 'OPEN' && market.status !== 'CLOSED') {
+      throw new Error("Market is not open or closed");
     }
 
-    revalidatePath(`/markets/${input.marketId}`);
-    revalidatePath("/");
+    const winningOutcome = market.outcomes.find(o => o.id === input.winningOutcomeId);
+    if (!winningOutcome) throw new Error("Winning outcome not found in market");
 
-    await inngest.send({
-        name: 'market/resolved',
-        data: {
-            marketId: input.marketId,
-            title: resolveContext.marketTitle,
-            winningOutcomeName: resolveContext.winningOutcomeName,
-            positions: resolveContext.positions,
-            message: input.message
-        }
+    const allPositions = await tx.position.findMany({
+      where: { marketId: input.marketId, shares: { gt: 0 } },
     })
+
+    const winners = allPositions.filter(p => p.outcomeId === input.winningOutcomeId);
+    const losers = allPositions.filter(p => p.outcomeId !== input.winningOutcomeId);
+
+    const decTotalPayout = winners.reduce((sum, p) => sum.plus(new Prisma.Decimal(p.shares).mul(100)), new Prisma.Decimal(0));
+
+    // flatten winners and losers
+    const winnerUpdates = winners.flatMap(p => {
+      const decShares = new Prisma.Decimal(p.shares);
+      const decAvgCost = new Prisma.Decimal(p.avgCost);
+      const payout = decShares.mul(100);
+      const pnlDelta = payout.minus(decAvgCost.mul(decShares));
+      return [
+        tx.user.update({
+          where: { id: p.userId },
+          data: { money: { increment: payout } }
+        }),
+        tx.position.update({
+          where: { id: p.id },
+          data: { shares: 0, realizedPnl: { increment: pnlDelta } }
+        })
+      ]
+    })
+
+    const loserUpdates = losers.map(p => {
+      const decShares = new Prisma.Decimal(p.shares);
+      const decAvgCost = new Prisma.Decimal(p.avgCost);
+      const loss = decAvgCost.mul(decShares);
+      return tx.position.update({
+        where: { id: p.id },
+        data: { shares: 0, realizedPnl: { decrement: loss } }
+      })
+    })
+
+    await Promise.all([
+      tx.market.update({
+        where: { id: input.marketId },
+        data: {
+          status: 'RESOLVED',
+          resolvedOutcomeId: input.winningOutcomeId,
+          resolvedById: Number(session.user.id),
+          resolvedAt: new Date(),
+        }
+      }),
+
+      tx.user.update({
+        where: { id: treasuryId },
+        data: { money: { decrement: decTotalPayout } }
+      }),
+
+      ...winnerUpdates,
+      ...loserUpdates
+    ])
+
+    return {
+      marketTitle: market.title,
+      winningOutcomeName: winningOutcome.name,
+      positions: allPositions.map(p => ({
+        userId: p.userId,
+        shares: Number(p.shares),
+        outcomeName: market.outcomes.find(o => o.id === p.outcomeId)?.name ?? "Unknown",
+        isWinner: p.outcomeId === input.winningOutcomeId,
+        payout: p.outcomeId === input.winningOutcomeId ? Number(p.shares) * 100 : 0,
+      }))
+    }
+  })
+
+  await prisma.notification.createMany({
+    data:
+      admins.map(admin => ({
+        userId: admin.id,
+        type: NotificationType.RESOLUTION,
+        title: `Market Resolved: ${resolveContext.marketTitle}`,
+        body: `The market "${resolveContext.marketTitle}" has been resolved to: "${resolveContext.winningOutcomeName}".`
+      }))
+  })
+
+  if (resolveContext.positions.length > 0) {
+    await prisma.notification.createMany({
+      data: resolveContext.positions.map(p => ({
+        userId: p.userId,
+        type: NotificationType.RESOLUTION,
+        resolutionType: p.isWinner ? ResolutionType.WIN : ResolutionType.LOSS,
+        title: `Market Resolved: ${resolveContext.marketTitle}`,
+        body: p.isWinner ? `Congratulations! Your outcome "${p.outcomeName}" won. You received $${p.payout.toFixed(2)}.`
+          : `Unfortunately, your outcome "${p.outcomeName}" lost. Better luck next time!`
+      }))
+    })
+  }
+
+  revalidatePath(`/markets/${input.marketId}`);
+  revalidatePath("/");
+
+  await inngest.send({
+    name: 'market/resolved',
+    data: {
+      marketId: input.marketId,
+      title: resolveContext.marketTitle,
+      winningOutcomeName: resolveContext.winningOutcomeName,
+      positions: resolveContext.positions,
+      message: input.message
+    }
+  })
 }

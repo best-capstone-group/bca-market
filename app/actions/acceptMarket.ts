@@ -10,95 +10,95 @@ import { NotificationType } from '../generated/prisma/client';
 import { inngest } from '@/lib/inngest';
 
 export type AcceptMarketInput = {
-    marketId: number;
-    title: string;
-    description: string;
-    creatorId: number;
-    liquidity: number;
-    outcomes: string[];
-    closeTime: string;
-    message?: string;
+  marketId: number;
+  title: string;
+  description: string;
+  creatorId: number;
+  liquidity: number;
+  outcomes: string[];
+  closeTime: string;
+  message?: string;
 };
 
 export async function acceptMarket(input: AcceptMarketInput) {
-    const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
 
-    if (!session?.user?.admin || !session.user.id) {
-        throw new Error("Unauthorized");
-    }
+  if (!session?.user?.admin || !session.user.id) {
+    throw new Error("Unauthorized");
+  }
 
-    const title = input.title.trim();
-    const description = input.description.trim();
-    const outcomes = input.outcomes
-        .map((outcome) => outcome.trim())
-        .filter(Boolean);
-    const closeTime = new Date(input.closeTime);
+  const title = input.title.trim();
+  const description = input.description.trim();
+  const outcomes = input.outcomes
+    .map((outcome) => outcome.trim())
+    .filter(Boolean);
+  const closeTime = new Date(input.closeTime);
 
-    if (!title || !description || !Number.isInteger(input.liquidity) || input.liquidity <= 0 || outcomes.length === 0 || Number.isNaN(closeTime.getTime())) {
-        throw new Error("Invalid approval request");
-    }
+  if (!title || !description || !Number.isInteger(input.liquidity) || input.liquidity <= 0 || outcomes.length === 0 || Number.isNaN(closeTime.getTime())) {
+    throw new Error("Invalid approval request");
+  }
 
 
-    const notifContext = await prisma.$transaction(async (tx) => {
-        const admins = await tx.user.findMany({
-            where: {
-                OR: [
-                    { id: input.creatorId },
-                    { admin: true }
-                ]
-            }
-        })
+  const notifContext = await prisma.$transaction(async (tx) => {
+    const admins = await tx.user.findMany({
+      where: {
+        OR: [
+          { id: input.creatorId },
+          { admin: true }
+        ]
+      }
+    })
 
-        const updatedMarket = await tx.market.update({
-            where: { id: input.marketId },
-            data: {
-                title,
-                description,
-                liquidity: input.liquidity,
-                closeTime,
-                status: 'OPEN',
-                approvedById: Number(session.user.id),
-                approvedAt: new Date(),
-            },
-            include: { creator: true }
-        });
-
-        await tx.outcome.deleteMany({
-            where: { marketId: input.marketId },
-        });
-
-        await tx.outcome.createMany({
-            data: outcomes.map((name) => ({
-                marketId: input.marketId,
-                name,
-                sharesOutstanding: 0,
-            })),
-        }),
-
-        await tx.notification.createMany({
-            data: admins.map(user => ({
-                userId: user.id,
-                type: NotificationType.MARKET_APPROVED,
-                title: 'Market Approved',
-                body: `${user.admin ? 'The' : 'Your'} market "${title}" has been approved and is now open for trading.`
-            }))
-        });
-
-        return updatedMarket;
+    const updatedMarket = await tx.market.update({
+      where: { id: input.marketId },
+      data: {
+        title,
+        description,
+        liquidity: input.liquidity,
+        closeTime,
+        status: 'OPEN',
+        approvedById: Number(session.user.id),
+        approvedAt: new Date(),
+      },
+      include: { creator: true }
     });
 
-    revalidatePath(`/markets/${input.marketId}`);
-    revalidatePath("/");
+    await tx.outcome.deleteMany({
+      where: { marketId: input.marketId },
+    });
 
-    await inngest.send({
-        name: 'market/accepted',
-        data: {
-            marketId: input.marketId,
-            title,
-            description,
-            creatorId: input.creatorId,
-            creatorName: `${notifContext.creator.firstName} ${notifContext.creator.lastName}`.trim() || notifContext.creator.email,
-            message: input.message
-        }
-    })
+    await tx.outcome.createMany({
+      data: outcomes.map((name) => ({
+        marketId: input.marketId,
+        name,
+        sharesOutstanding: 0,
+      })),
+    }),
+
+      await tx.notification.createMany({
+        data: admins.map(user => ({
+          userId: user.id,
+          type: NotificationType.MARKET_APPROVED,
+          title: 'Market Approved',
+          body: `${user.admin ? 'The' : 'Your'} market "${title}" has been approved and is now open for trading.`
+        }))
+      });
+
+    return updatedMarket;
+  });
+
+  revalidatePath(`/markets/${input.marketId}`);
+  revalidatePath("/");
+
+  await inngest.send({
+    name: 'market/accepted',
+    data: {
+      marketId: input.marketId,
+      title,
+      description,
+      creatorId: input.creatorId,
+      creatorName: `${notifContext.creator.firstName} ${notifContext.creator.lastName}`.trim() || notifContext.creator.email,
+      message: input.message
+    }
+  })
 }

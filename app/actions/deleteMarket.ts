@@ -8,59 +8,59 @@ import { Market, NotificationType } from '../generated/prisma/client';
 import { inngest } from '@/lib/inngest';
 
 export async function deleteMarket(market: Market, message?: string) {
-    const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
 
-    if (!session?.user?.admin || !session.user.id) {
-        throw new Error("Unauthorized");
+  if (!session?.user?.admin || !session.user.id) {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const dbMarket = await tx.market.findUnique({
+      where: { id: market.id }
+    });
+
+    if (!dbMarket) {
+      throw new Error("Market not found");
     }
 
-    await prisma.$transaction(async (tx) => {
-        const dbMarket = await tx.market.findUnique({
-            where: { id: market.id }
-        });
+    if (dbMarket.status !== 'PENDING') {
+      throw new Error("Only pending markets can be deleted");
+    }
 
-        if (!dbMarket) {
-            throw new Error("Market not found");
-        }
-
-        if (dbMarket.status !== 'PENDING') {
-            throw new Error("Only pending markets can be deleted");
-        }
-
-        const admins = await tx.user.findMany({
-            where: {
-                OR: [
-                    { id: market.creatorId },
-                    { admin: true }
-                ]
-            }
-        })
-
-        await tx.market.delete({
-            where: { id: market.id }
-        });
-
-        await tx.notification.createMany({
-            data:
-                admins.map(user => ({
-                    userId: user.id,
-                    type: NotificationType.MARKET_REJECTED,
-                    title: 'Market Rejected',
-                    body:  `${user.admin? 'The' : 'Your'} market "${market.title}" has been rejected and will not be open for trading.`
-                }))
-        })
+    const admins = await tx.user.findMany({
+      where: {
+        OR: [
+          { id: market.creatorId },
+          { admin: true }
+        ]
+      }
     })
 
-    const result = await inngest.send({
-        name: 'market/rejected',
-        data: {
-            marketId: market.id,
-            title: market.title,
-            creatorId: market.creatorId,
-            creatorName: '',
-            message: message
-        }
-    })
+    await tx.market.delete({
+      where: { id: market.id }
+    });
 
-    console.log(`Inngest result: ${JSON.stringify(result)}`)
+    await tx.notification.createMany({
+      data:
+        admins.map(user => ({
+          userId: user.id,
+          type: NotificationType.MARKET_REJECTED,
+          title: 'Market Rejected',
+          body: `${user.admin ? 'The' : 'Your'} market "${market.title}" has been rejected and will not be open for trading.`
+        }))
+    })
+  })
+
+  const result = await inngest.send({
+    name: 'market/rejected',
+    data: {
+      marketId: market.id,
+      title: market.title,
+      creatorId: market.creatorId,
+      creatorName: '',
+      message: message
+    }
+  })
+
+  console.log(`Inngest result: ${JSON.stringify(result)}`)
 }

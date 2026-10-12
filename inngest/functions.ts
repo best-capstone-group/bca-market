@@ -3,338 +3,338 @@ import { resend, FROM, chunk, emailHtml } from '@/lib/resend'
 import { prisma } from '@/lib/prisma'
 
 import {
-    userCreated,
-    marketRequested,
-    marketAccepted,
-    marketRejected,
-    marketRefunded,
-    marketResolved,
-    marketResolutionRequested,
+  userCreated,
+  marketRequested,
+  marketAccepted,
+  marketRejected,
+  marketRefunded,
+  marketResolved,
+  marketResolutionRequested,
 } from '@/lib/inngest'
 
 
 export const onUserCreated = inngest.createFunction(
-    {
-        id: 'user-onboarding-email',
-        triggers: [userCreated],
-    },
-    async ({ event, step }) => {
-        const { email, firstName, lastName } = event.data
-        const name = firstName ?? 'user'
-        // console.log(`Data: ${JSON.stringify(event.data)}`)
+  {
+    id: 'user-onboarding-email',
+    triggers: [userCreated],
+  },
+  async ({ event, step }) => {
+    const { email, firstName, lastName } = event.data
+    const name = firstName ?? 'user'
+    // console.log(`Data: ${JSON.stringify(event.data)}`)
 
-        await step.run('send-onboarding-email', () =>
-            resend.emails.send({
-                from: FROM,
-                to: email,
-                subject: 'Welcome to BCA Market',
-                html: emailHtml(
-                    `Welcome, ${name}!`,
-                    `<p>Your account is ready! On BCA Market, you can request your own markets and trade on anything BCA. 
-                    We're so excited to have you on board!</p>
-                    <p><a href="${process.env.NEXTAUTH_URL}/" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">Go to BCA Market</a></p>`
-                ),
-            })
-        )
+    await step.run('send-onboarding-email', () =>
+      resend.emails.send({
+        from: FROM,
+        to: email,
+        subject: 'Welcome to BCA Market',
+        html: emailHtml(
+          `Welcome, ${name}!`,
+          `<p>Your account is ready! On BCA Market, you can request your own markets and trade on anything BCA. 
+            We're so excited to have you on board!</p>
+           <p><a href="${process.env.NEXTAUTH_URL}/" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">Go to BCA Market</a></p>`
+        ),
+      })
+    )
 
-        await step.run('add-to-digests', () =>
-            resend.contacts.create({
-                segments: [
-                    { id: process.env.MORNING_DIGEST_SEGMENT_ID! },
-                    { id: process.env.NOON_DIGEST_SEGMENT_ID! },
-                    { id: process.env.EVENING_DIGEST_SEGMENT_ID! },
-                ],
-                email,
-                firstName: firstName ?? undefined,
-                lastName: lastName ?? undefined,
-                unsubscribed: false
-            })
-        )
-    }
+    await step.run('add-to-digests', () =>
+      resend.contacts.create({
+        segments: [
+          { id: process.env.MORNING_DIGEST_SEGMENT_ID! },
+          { id: process.env.NOON_DIGEST_SEGMENT_ID! },
+          { id: process.env.EVENING_DIGEST_SEGMENT_ID! },
+        ],
+        email,
+        firstName: firstName ?? undefined,
+        lastName: lastName ?? undefined,
+        unsubscribed: false
+      })
+    )
+  }
 )
 
 
 export const onMarketRequested = inngest.createFunction(
-    {
-        id: 'market-requested-notify-admins',
-        triggers: [marketRequested],
-    },
-    async ({ event, step }) => {
-        const { title, creatorName, marketId } = event.data
+  {
+    id: 'market-requested-notify-admins',
+    triggers: [marketRequested],
+  },
+  async ({ event, step }) => {
+    const { title, creatorName, marketId } = event.data
 
-        const admins = await step.run('fetch-admins', () =>
-            prisma.user.findMany({
-                where: { admin: true },
-                select: { email: true },
-            })
-        )
+    const admins = await step.run('fetch-admins', () =>
+      prisma.user.findMany({
+        where: { admin: true },
+        select: { email: true },
+      })
+    )
 
-        // console.log(`Admins to notify: ${admins.map(a => a.email).join(', ')}`)
+    // console.log(`Admins to notify: ${admins.map(a => a.email).join(', ')}`)
 
-        if (admins.length === 0) return
+    if (admins.length === 0) return
 
-        await step.run('email-admins', () =>
-            resend.batch.send(
-                admins.map((a) => ({
-                    from: FROM,
-                    to: a.email,
-                    subject: `New Market Request: "${title}"`,
-                    html: emailHtml(
-                        'New Market Pending Approval',
-                        `<p>A new market request has been submitted for approval:</p>
-                         <p><strong>${title}</strong></p>
-                         <p><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">View Market</a></p>`
-                    ),
-                }))
-            )
-        )
-    }
+    await step.run('email-admins', () =>
+      resend.batch.send(
+        admins.map((a) => ({
+          from: FROM,
+          to: a.email,
+          subject: `New Market Request: "${title}"`,
+          html: emailHtml(
+            'New Market Pending Approval',
+            `<p>A new market request has been submitted for approval:</p>
+              <p><strong>${title}</strong></p>
+              <p><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">View Market</a></p>`
+          ),
+        }))
+      )
+    )
+  }
 )
 
 export const onMarketAccepted = inngest.createFunction(
-    {
-        id: 'market-accepted-emails',
-        triggers: [marketAccepted],
-    },
+  {
+    id: 'market-accepted-emails',
+    triggers: [marketAccepted],
+  },
 
-    async ({ event, step }) => {
-        const { marketId, title, description, creatorId, creatorName, message } = event.data
+  async ({ event, step }) => {
+    const { marketId, title, description, creatorId, creatorName, message } = event.data
 
-        // Notify the creator first
-        const creator = await step.run('fetch-creator', () =>
-            prisma.user.findUnique({ where: { id: creatorId }, select: { email: true } })
-        )
+    // Notify the creator first
+    const creator = await step.run('fetch-creator', () =>
+      prisma.user.findUnique({ where: { id: creatorId }, select: { email: true } })
+    )
 
-        if (creator) {
-            await step.run('email-creator', () =>
-                resend.emails.send({
-                    from: FROM,
-                    to: creator.email,
-                    subject: `Your Market Was Approved: "${title}"`,
-                    html: emailHtml(
-                        'Market Approved',
-                        `<p>Your market <strong>"${title}"</strong> has been approved and is now open for trading.</p>
-                         ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
-                         <p><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">View Market</a></p>`
-                    ),
-                })
-            )
-        }
-
-        // // Broadcast to all other users
-        // const allUsers = await step.run('fetch-all-users', () =>
-        //     prisma.user.findMany({
-        //         where: {
-        //             AND: [
-        //                 { id: { not: creatorId } },
-        //                 { id: { not: Number(process.env.TREASURY_ACCOUNT_ID) } },
-        //             ]
-        //         },
-        //         select: { email: true },
-        //     })
-        // )
-
-        // const batches = chunk(allUsers)
-        // for (let i = 0; i < batches.length; i++) {
-        //     const batch = batches[i]
-        //     await step.run(`email-batch-${i}`, () =>
-        //         resend.batch.send(
-        //             batch.map(u => ({
-        //                 from: FROM,
-        //                 to: u.email,
-        //                 subject: `New Market Open: "${title}"`,
-        //                 html: emailHtml(
-        //                     'New Market Now Open',
-        //                     `<p>A new market is open for trading on BCA Market:</p>
-        //                      <p style="padding:12px 16px;background:#f4f4f5;border-radius:8px;">
-        //                        <strong>${title}</strong><br>
-        //                        <span style="color:#71717a;font-size:14px;">${description}</span>
-        //                      </p>
-        //                      <p><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">View Market</a></p>`
-        //                 ),
-        //             }))
-        //         )
-        //     )
-        // }
+    if (creator) {
+      await step.run('email-creator', () =>
+        resend.emails.send({
+          from: FROM,
+          to: creator.email,
+          subject: `Your Market Was Approved: "${title}"`,
+          html: emailHtml(
+            'Market Approved',
+            `<p>Your market <strong>"${title}"</strong> has been approved and is now open for trading.</p>
+              ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
+              <p><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">View Market</a></p>`
+          ),
+        })
+      )
     }
+
+    // // Broadcast to all other users
+    // const allUsers = await step.run('fetch-all-users', () =>
+    //     prisma.user.findMany({
+    //         where: {
+    //             AND: [
+    //                 { id: { not: creatorId } },
+    //                 { id: { not: Number(process.env.TREASURY_ACCOUNT_ID) } },
+    //             ]
+    //         },
+    //         select: { email: true },
+    //     })
+    // )
+
+    // const batches = chunk(allUsers)
+    // for (let i = 0; i < batches.length; i++) {
+    //     const batch = batches[i]
+    //     await step.run(`email-batch-${i}`, () =>
+    //         resend.batch.send(
+    //             batch.map(u => ({
+    //                 from: FROM,
+    //                 to: u.email,
+    //                 subject: `New Market Open: "${title}"`,
+    //                 html: emailHtml(
+    //                     'New Market Now Open',
+    //                     `<p>A new market is open for trading on BCA Market:</p>
+    //                      <p style="padding:12px 16px;background:#f4f4f5;border-radius:8px;">
+    //                        <strong>${title}</strong><br>
+    //                        <span style="color:#71717a;font-size:14px;">${description}</span>
+    //                      </p>
+    //                      <p><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">View Market</a></p>`
+    //                 ),
+    //             }))
+    //         )
+    //     )
+    // }
+  }
 )
 
 export const onMarketRejected = inngest.createFunction(
-    {
-        id: 'market-rejected-email',
-        triggers: [marketRejected],
-    },
-    async ({ event, step }) => {
-        const { title, creatorId, message } = event.data
+  {
+    id: 'market-rejected-email',
+    triggers: [marketRejected],
+  },
+  async ({ event, step }) => {
+    const { title, creatorId, message } = event.data
 
-        const creator = await step.run('fetch-creator', () =>
-            prisma.user.findUnique({ where: { id: creatorId }, select: { email: true } })
-        )
+    const creator = await step.run('fetch-creator', () =>
+      prisma.user.findUnique({ where: { id: creatorId }, select: { email: true } })
+    )
 
-        if (!creator) return
+    if (!creator) return
 
-        await step.run('send-email', () =>
-            resend.emails.send({
-                from: FROM,
-                to: creator.email,
-                subject: `Market Not Approved: "${title}"`,
-                html: emailHtml(
-                    'Market Not Approved',
-                    `<p>Your market request <strong>"${title}"</strong> was not approved at this time.</p>
-                     ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
-                     <p>You can submit a new request from the home page.</p>`
-                ),
-            })
-        )
-    }
+    await step.run('send-email', () =>
+      resend.emails.send({
+        from: FROM,
+        to: creator.email,
+        subject: `Market Not Approved: "${title}"`,
+        html: emailHtml(
+          'Market Not Approved',
+          `<p>Your market request <strong>"${title}"</strong> was not approved at this time.</p>
+            ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
+            <p>You can submit a new request from the home page.</p>`
+        ),
+      })
+    )
+  }
 )
 
 export const onMarketRefunded = inngest.createFunction(
-    {
-        id: 'market-refunded-emails',
-        triggers: [marketRefunded],
-    },
-    async ({ event, step }) => {
-        const { title, refunds, message } = event.data
+  {
+    id: 'market-refunded-emails',
+    triggers: [marketRefunded],
+  },
+  async ({ event, step }) => {
+    const { title, refunds, message } = event.data
 
-        const userIds = refunds.map(r => r.userId)
-        const users = await step.run('fetch-users', () =>
-            prisma.user.findMany({
-                where: { id: { in: userIds } },
-                select: { id: true, email: true, firstName: true },
-            })
+    const userIds = refunds.map(r => r.userId)
+    const users = await step.run('fetch-users', () =>
+      prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, email: true, firstName: true },
+      })
+    )
+
+    const userMap = new Map(users.map(u => [u.id, u]))
+    const emails = refunds
+      .map(r => ({ r, user: userMap.get(r.userId) }))
+      .filter((x): x is { r: typeof refunds[number]; user: NonNullable<typeof users[number]> } => !!x.user)
+
+    const batches = chunk(emails)
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i]
+      await step.run(`email-batch-${i}`, () =>
+        resend.batch.send(
+          batch.map(({ r, user }) => ({
+            from: FROM,
+            to: user.email,
+            subject: `Refund Issued: "${title}"`,
+            html: emailHtml(
+              'Market Refunded',
+              `<p>The market <strong>"${title}"</strong> has been cancelled and your position has been refunded.</p>
+                  <p style="padding:12px 16px;background:#f4f4f5;border-radius:8px;font-size:15px;margin-bottom:16px;">
+                    Amount returned: <strong>$${r.amount.toFixed(2)}</strong>
+                  </p>
+                ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}`
+            ),
+          }))
         )
-
-        const userMap = new Map(users.map(u => [u.id, u]))
-        const emails = refunds
-            .map(r => ({ r, user: userMap.get(r.userId) }))
-            .filter((x): x is { r: typeof refunds[number]; user: NonNullable<typeof users[number]> } => !!x.user)
-
-        const batches = chunk(emails)
-        for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i]
-            await step.run(`email-batch-${i}`, () =>
-                resend.batch.send(
-                    batch.map(({ r, user }) => ({
-                        from: FROM,
-                        to: user.email,
-                        subject: `Refund Issued: "${title}"`,
-                        html: emailHtml(
-                            'Market Refunded',
-                            `<p>The market <strong>"${title}"</strong> has been cancelled and your position has been refunded.</p>
-                             <p style="padding:12px 16px;background:#f4f4f5;border-radius:8px;font-size:15px;margin-bottom:16px;">
-                               Amount returned: <strong>$${r.amount.toFixed(2)}</strong>
-                             </p>
-                             ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}`
-                        ),
-                    }))
-                )
-            )
-        }
+      )
     }
+  }
 )
 
 export const onMarketResolved = inngest.createFunction(
-    {
-        id: 'market-resolved-emails',
-        triggers: [marketResolved],
-    },
-    async ({ event, step }) => {
-        const { title, winningOutcomeName, positions, message } = event.data
+  {
+    id: 'market-resolved-emails',
+    triggers: [marketResolved],
+  },
+  async ({ event, step }) => {
+    const { title, winningOutcomeName, positions, message } = event.data
 
-        const userIds = positions.map(p => p.userId)
-        const users = await step.run('fetch-users', () =>
-            prisma.user.findMany({
-                where: { id: { in: userIds } },
-                select: { id: true, email: true, firstName: true },
-            })
+    const userIds = positions.map(p => p.userId)
+    const users = await step.run('fetch-users', () =>
+      prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, email: true, firstName: true },
+      })
+    )
+
+    const userMap = new Map(users.map(u => [u.id, u]))
+    const emails = positions
+      .map(p => ({ p, user: userMap.get(p.userId) }))
+      .filter((x): x is { p: typeof positions[number]; user: NonNullable<typeof users[number]> } => !!x.user)
+
+    const batches = chunk(emails)
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i]
+      await step.run(`email-batch-${i}`, () =>
+        resend.batch.send(
+          batch.map(({ p, user }) => {
+            const name = user.firstName ?? 'there'
+            return p.isWinner
+              ? {
+                from: FROM,
+                to: user.email,
+                subject: `You Won: "${title}"`,
+                html: emailHtml(
+                  `Congratulations, ${name}!`,
+                  `<p>The market <strong>"${title}"</strong> has resolved.</p>
+                    <p style="padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+                      <strong style="color:#15803d;">Your outcome won: ${p.outcomeName}</strong><br>
+                        <span style="color:#166534;">Payout: <strong>$${p.payout.toFixed(2)}</strong></span>
+                    </p>
+                    ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
+                    <p>Your balance has been updated.</p>`
+                ),
+              }
+              : {
+                from: FROM,
+                to: user.email,
+                subject: `Market Resolved: "${title}"`,
+                html: emailHtml(
+                  'Market Resolved',
+                  `<p>The market <strong>"${title}"</strong> has resolved.</p>
+                  <p style="padding:12px 16px;background:#f4f4f5;border-radius:8px;">
+                    <strong>Winning outcome:</strong> ${winningOutcomeName}<br>
+                    <span style="color:#71717a;">Your outcome <strong>${p.outcomeName}</strong> did not win this time.</span>
+                  </p>
+                  ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}`
+                ),
+              }
+          })
         )
-
-        const userMap = new Map(users.map(u => [u.id, u]))
-        const emails = positions
-            .map(p => ({ p, user: userMap.get(p.userId) }))
-            .filter((x): x is { p: typeof positions[number]; user: NonNullable<typeof users[number]> } => !!x.user)
-
-        const batches = chunk(emails)
-        for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i]
-            await step.run(`email-batch-${i}`, () =>
-                resend.batch.send(
-                    batch.map(({ p, user }) => {
-                        const name = user.firstName ?? 'there'
-                        return p.isWinner
-                            ? {
-                                from: FROM,
-                                to: user.email,
-                                subject: `You Won: "${title}"`,
-                                html: emailHtml(
-                                    `Congratulations, ${name}!`,
-                                    `<p>The market <strong>"${title}"</strong> has resolved.</p>
-                                     <p style="padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
-                                       <strong style="color:#15803d;">Your outcome won: ${p.outcomeName}</strong><br>
-                                       <span style="color:#166534;">Payout: <strong>$${p.payout.toFixed(2)}</strong></span>
-                                     </p>
-                                     ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
-                                     <p>Your balance has been updated.</p>`
-                                ),
-                            }
-                            : {
-                                from: FROM,
-                                to: user.email,
-                                subject: `Market Resolved: "${title}"`,
-                                html: emailHtml(
-                                    'Market Resolved',
-                                    `<p>The market <strong>"${title}"</strong> has resolved.</p>
-                                     <p style="padding:12px 16px;background:#f4f4f5;border-radius:8px;">
-                                       <strong>Winning outcome:</strong> ${winningOutcomeName}<br>
-                                       <span style="color:#71717a;">Your outcome <strong>${p.outcomeName}</strong> did not win this time.</span>
-                                     </p>
-                                     ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}`
-                                ),
-                            }
-                    })
-                )
-            )
-        }
+      )
     }
+  }
 )
 
 export const onMarketDigest = inngest.createFunction(
-    {
-        id: 'market-digest',
-        triggers: [
-            { cron: 'TZ=America/New_York 15 7 * * *' },
-            { cron: 'TZ=America/New_York 30 12 * * *' },
-            { cron: 'TZ=America/New_York 30 18 * * *' },
-        ]
-    },
-    async ({ step }) => {
-        const markets = await step.run('fetch-undigested-markets', () =>
-            prisma.market.findMany({
-                where: {
-                    status: 'OPEN',
-                    sentInDigest: false,
-                },
-                select: {
-                    id: true,
-                    title: true,
-                    description: true,
-                },
-                orderBy: { approvedAt: 'asc' },
-            })
-        )
+  {
+    id: 'market-digest',
+    triggers: [
+      { cron: 'TZ=America/New_York 15 7 * * *' },
+      { cron: 'TZ=America/New_York 30 12 * * *' },
+      { cron: 'TZ=America/New_York 30 18 * * *' },
+    ]
+  },
+  async ({ step }) => {
+    const markets = await step.run('fetch-undigested-markets', () =>
+      prisma.market.findMany({
+        where: {
+          status: 'OPEN',
+          sentInDigest: false,
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+        },
+        orderBy: { approvedAt: 'asc' },
+      })
+    )
 
-        if (markets.length === 0) {
-            return { sent: false, reason: 'no new markets since last digest' }
-        }
+    if (markets.length === 0) {
+      return { sent: false, reason: 'no new markets since last digest' }
+    }
 
-        const now = new Date()
-        const hour = now.getUTCHours()
-        const timeLabel = (11 <= hour && hour <= 15) ? 'Morning' : (16 <= hour && hour <= 20) ? 'Afternoon' : 'Evening'
+    const now = new Date()
+    const hour = now.getUTCHours()
+    const timeLabel = (11 <= hour && hour <= 15) ? 'Morning' : (16 <= hour && hour <= 20) ? 'Afternoon' : 'Evening'
 
-        const marketRowsHtml = markets
-            .map(
-                (m) => `
+    const marketRowsHtml = markets
+      .map(
+        (m) => `
                 <tr>
                   <td style="padding:16px 0;border-bottom:1px solid #e4e4e7;">
                     <p style="margin:0 0 4px;font-size:15px;font-weight:600;color:#09090b;">${m.title}</p>
@@ -345,18 +345,18 @@ export const onMarketDigest = inngest.createFunction(
                     </a>
                   </td>
                 </tr>`
-            )
-            .join('')
+      )
+      .join('')
 
-        const marketCount = markets.length
-        const plural = marketCount !== 1
+    const marketCount = markets.length
+    const plural = marketCount !== 1
 
-        // {{{contact.first_name|there}}} is Resend's personalization syntax for Broadcasts.
-        // {{{RESEND_UNSUBSCRIBE_URL}}} is automatically replaced with a per-contact
-        // unsubscribe link; Resend handles the unsubscribe flow automatically.
-        const html = emailHtml(
-            `${timeLabel} Markets`,
-            `<p>Good ${timeLabel} {{{contact.first_name|trader}}}!</p>
+    // {{{contact.first_name|there}}} is Resend's personalization syntax for Broadcasts.
+    // {{{RESEND_UNSUBSCRIBE_URL}}} is automatically replaced with a per-contact
+    // unsubscribe link; Resend handles the unsubscribe flow automatically.
+    const html = emailHtml(
+      `${timeLabel} Markets`,
+      `<p>Good ${timeLabel} {{{contact.first_name|trader}}}!</p>
              <p><strong>${marketCount} new market${plural ? 's are' : ' is'} featured</strong> on BCA Market:</p>
              <table style="width:100%;border-collapse:collapse;border-top:1px solid #e4e4e7;">
                ${marketRowsHtml}
@@ -370,80 +370,80 @@ export const onMarketDigest = inngest.createFunction(
              <p style="margin-top:40px;font-size:12px;color:#a1a1aa;">
                <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:#a1a1aa;">Unsubscribe</a> at any time.
              </p>`
-        )
+    )
 
-        // "name" is internal only, used to identify this broadcast in the Resend dashboard
-        // "send: true" creates and sends in one API call
-        const broadcastName = `digest-${now.toISOString().slice(0, 13)}h` // e.g. "digest-2025-06-15T12h"
+    // "name" is internal only, used to identify this broadcast in the Resend dashboard
+    // "send: true" creates and sends in one API call
+    const broadcastName = `digest-${now.toISOString().slice(0, 13)}h` // e.g. "digest-2025-06-15T12h"
 
-        await step.run('send-broadcast', () => {
-            const result = resend.broadcasts.create({
-                segmentId: timeLabel === 'Morning'
-                    ? process.env.MORNING_DIGEST_SEGMENT_ID!
-                    : timeLabel === 'Afternoon'
-                        ? process.env.NOON_DIGEST_SEGMENT_ID!
-                        : process.env.EVENING_DIGEST_SEGMENT_ID!,
-                from: FROM,
-                subject: `Good ${timeLabel}! ${marketCount} new market${plural ? 's' : ''} open`,
-                html,
-                name: broadcastName,
-                send: true,
-            })
+    await step.run('send-broadcast', () => {
+      const result = resend.broadcasts.create({
+        segmentId: timeLabel === 'Morning'
+          ? process.env.MORNING_DIGEST_SEGMENT_ID!
+          : timeLabel === 'Afternoon'
+            ? process.env.NOON_DIGEST_SEGMENT_ID!
+            : process.env.EVENING_DIGEST_SEGMENT_ID!,
+        from: FROM,
+        subject: `Good ${timeLabel}! ${marketCount} new market${plural ? 's' : ''} open`,
+        html,
+        name: broadcastName,
+        send: true,
+      })
 
-            console.log(`Broadcast result: ${JSON.stringify(result)}`)
-        }
-        )
-
-        // Mark these markets as digested so they don't appear in the next digest.
-        const marketIds = markets.map((m) => m.id)
-        await step.run('mark-markets-digested', () =>
-            prisma.market.updateMany({
-                where: { id: { in: marketIds } },
-                data: { sentInDigest: true },
-            })
-        )
-
-        return { sent: true, count: marketCount, broadcastName }
+      console.log(`Broadcast result: ${JSON.stringify(result)}`)
     }
+    )
+
+    // Mark these markets as digested so they don't appear in the next digest.
+    const marketIds = markets.map((m) => m.id)
+    await step.run('mark-markets-digested', () =>
+      prisma.market.updateMany({
+        where: { id: { in: marketIds } },
+        data: { sentInDigest: true },
+      })
+    )
+
+    return { sent: true, count: marketCount, broadcastName }
+  }
 )
 
 export const onMarketResolutionRequested = inngest.createFunction(
-    {
-        id: 'market-resolution-requested-notify-admins',
-        triggers: [marketResolutionRequested],
-    },
-    async ({ event, step }) => {
-        const { marketId, title, creatorName, requestType, winningOutcomeName, message } = event.data
+  {
+    id: 'market-resolution-requested-notify-admins',
+    triggers: [marketResolutionRequested],
+  },
+  async ({ event, step }) => {
+    const { marketId, title, creatorName, requestType, winningOutcomeName, message } = event.data
 
-        const admins = await step.run('fetch-admins', () =>
-            prisma.user.findMany({
-                where: { admin: true },
-                select: { email: true },
-            })
-        )
+    const admins = await step.run('fetch-admins', () =>
+      prisma.user.findMany({
+        where: { admin: true },
+        select: { email: true },
+      })
+    )
 
-        if (admins.length === 0) return
+    if (admins.length === 0) return
 
-        const actionText = requestType === 'REFUND'
-            ? 'refund this market'
-            : `resolve this market to outcome: <strong>${winningOutcomeName}</strong>`
+    const actionText = requestType === 'REFUND'
+      ? 'refund this market'
+      : `resolve this market to outcome: <strong>${winningOutcomeName}</strong>`
 
-        await step.run('email-admins', () =>
-            resend.batch.send(
-                admins.map((a) => ({
-                    from: FROM,
-                    to: a.email,
-                    subject: `Resolution Request: "${title}"`,
-                    html: emailHtml(
-                        'Market Resolution Requested',
-                        `<p>The market requester <strong>${creatorName}</strong> has submitted an official resolution request for their market:</p>
-                         <p style="font-size:16px;font-weight:600;color:#09090b;margin:12px 0;">"${title}"</p>
-                         <p><strong>Requested action:</strong> ${actionText}</p>
-                         ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
-                         <p style="margin-top:24px;"><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">Review & Resolve Market</a></p>`
-                    ),
-                }))
-            )
-        )
-    }
+    await step.run('email-admins', () =>
+      resend.batch.send(
+        admins.map((a) => ({
+          from: FROM,
+          to: a.email,
+          subject: `Resolution Request: "${title}"`,
+          html: emailHtml(
+            'Market Resolution Requested',
+            `<p>The market requester <strong>${creatorName}</strong> has submitted an official resolution request for their market:</p>
+              <p style="font-size:16px;font-weight:600;color:#09090b;margin:12px 0;">"${title}"</p>
+                <p><strong>Requested action:</strong> ${actionText}</p>
+                  ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
+                <p style="margin-top:24px;"><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">Review & Resolve Market</a></p>`
+          ),
+        }))
+      )
+    )
+  }
 )

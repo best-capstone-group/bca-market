@@ -7,80 +7,80 @@ import { NotificationType } from "@/app/generated/prisma/browser";
 import { inngest } from "@/lib/inngest";
 
 export async function POST(req: Request) {
-    const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  const description =
+    typeof body.description === "string" ? body.description.trim() : "";
+  const closeTimeValue =
+    typeof body.closeTime === "string" ? body.closeTime : "";
+
+  if (!title || !description || !closeTimeValue) {
+    return NextResponse.json(
+      { error: "Title, description, and close time are required." },
+      { status: 400 }
+    );
+  }
+
+  const closeTime = new Date(closeTimeValue);
+  if (Number.isNaN(closeTime.getTime())) {
+    return NextResponse.json(
+      { error: "Invalid close time." },
+      { status: 400 }
+    );
+  }
+
+  const creator = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, firstName: true, lastName: true, email: true },
+  });
+
+  if (!creator) {
+    return NextResponse.json(
+      { error: "User record not found." },
+      { status: 404 }
+    );
+  }
+
+  const market = await prisma.market.create({
+    data: {
+      title,
+      description,
+      closeTime,
+      creatorId: creator.id,
+      status: "PENDING",
+    },
+  });
+
+  const admins = await prisma.user.findMany({
+    where: { admin: true },
+  })
+
+  await prisma.notification.createMany({
+    data: admins.map(admin => ({
+      userId: admin.id,
+      type: NotificationType.MARKET_REQUEST,
+      title: `New Market Request: ${market.title}`,
+      body: `A new market is awaiting review.`
+    }))
+  })
+
+  const result = await inngest.send({
+    name: 'market/requested',
+    data: {
+      marketId: market.id,
+      title: market.title,
+      creatorId: creator.id,
+      creatorName: `${creator.firstName} ${creator.lastName}`.trim() || creator.email
     }
+  })
 
-    const body = await req.json();
-    const title = typeof body.title === "string" ? body.title.trim() : "";
-    const description =
-        typeof body.description === "string" ? body.description.trim() : "";
-    const closeTimeValue =
-        typeof body.closeTime === "string" ? body.closeTime : "";
+  // console.log(`Inngest result: ${JSON.stringify(result)}`)
 
-    if (!title || !description || !closeTimeValue) {
-        return NextResponse.json(
-            { error: "Title, description, and close time are required." },
-            { status: 400 }
-        );
-    }
-
-    const closeTime = new Date(closeTimeValue);
-    if (Number.isNaN(closeTime.getTime())) {
-        return NextResponse.json(
-            { error: "Invalid close time." },
-            { status: 400 }
-        );
-    }
-
-    const creator = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { id: true, firstName: true, lastName: true, email: true },
-    });
-
-    if (!creator) {
-        return NextResponse.json(
-            { error: "User record not found." },
-            { status: 404 }
-        );
-    }
-
-    const market = await prisma.market.create({
-        data: {
-            title,
-            description,
-            closeTime,
-            creatorId: creator.id,
-            status: "PENDING",
-        },
-    });
-
-    const admins = await prisma.user.findMany({
-        where: { admin: true },
-    })
-
-    await prisma.notification.createMany({
-        data: admins.map(admin => ({
-            userId: admin.id,
-            type: NotificationType.MARKET_REQUEST,
-            title: `New Market Request: ${market.title}`,
-            body: `A new market is awaiting review.`
-        }))
-    })
-
-    const result = await inngest.send({
-        name: 'market/requested',
-        data: {
-            marketId: market.id,
-            title: market.title,
-            creatorId: creator.id,
-            creatorName: `${creator.firstName} ${creator.lastName}`.trim() || creator.email
-        }
-    })
-
-    // console.log(`Inngest result: ${JSON.stringify(result)}`)
-
-    return NextResponse.json({ market }, { status: 201 });
+  return NextResponse.json({ market }, { status: 201 });
 }
