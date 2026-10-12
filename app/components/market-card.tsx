@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, CircleCheckBig, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import LocalDateTime from "./local-date-time";
 
-import { CircleCheckBig } from 'lucide-react';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/app/components/ui/context-menu";
 
 import toggleMarketHidden from "@/app/actions/toggleMarketHidden";
@@ -25,6 +24,8 @@ type MarketCardProps = {
     outcomes: Outcome[];
     resolvedOutcomeId?: number | null;
     hidden: boolean;
+    awaitingResolutionRequest?: boolean;
+    resolutionRequested?: boolean;
   };
 };
 
@@ -47,7 +48,11 @@ export default function MarketCard({ market, isAdmin }: MarketCardProps & { isAd
   const card = (
     <Link href={`/markets/${market.id}`} className={`min-w-0 flex-1 ${market.hidden ? "opacity-50" : ""}`}>
       <article
-        className={`group flex flex-col rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-sky-200 hover:shadow-xl`}
+        className={`group flex flex-col rounded-3xl border bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${
+          market.awaitingResolutionRequest
+            ? "border-red-300 ring-2 ring-red-500/20 hover:border-red-400 hover:ring-red-500/30"
+            : "border-zinc-200 hover:border-sky-200"
+        }`}
       >
         <div className="flex items-start justify-between gap-3">
           <h2
@@ -57,13 +62,31 @@ export default function MarketCard({ market, isAdmin }: MarketCardProps & { isAd
             {market.title}
           </h2>
 
-          <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(
-              market.status
-            )}`}
-          >
-            {market.status}
-          </span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {market.awaitingResolutionRequest && (
+              <span
+                title="Awaiting your resolution request"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600 ring-1 ring-amber-300/80 transition-transform group-hover:scale-105"
+              >
+                <AlertCircle className="h-4 w-4" />
+              </span>
+            )}
+            {market.resolutionRequested && (
+              <span
+                title="Resolution request submitted"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 ring-1 ring-blue-300/80"
+              >
+                <CircleCheckBig className="h-4 w-4" />
+              </span>
+            )}
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass(
+                market.status
+              )}`}
+            >
+              {market.status}
+            </span>
+          </div>
         </div>
 
         <div className="mt-4 space-y-3">

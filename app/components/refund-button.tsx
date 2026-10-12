@@ -1,33 +1,78 @@
 'use client'
 
 import { useState } from "react";
-import { useRouter } from "next/navigation"
-import { Market } from "../generated/prisma/browser"
+import { useRouter } from "next/navigation";
+import { Market } from "../generated/prisma/browser";
 import { refundMarket } from '@/app/actions/refundMarket';
+import { requestMarketResolution } from "@/app/actions/requestMarketResolution";
 
-export default function RefundButton({ market }: { market: Market }) {
-    const router = useRouter()
+import styles from './animations.module.css'
+
+export default function RefundButton({
+    market,
+    isRequest = false,
+    initialMessage = "",
+}: {
+    market: Market;
+    isRequest?: boolean;
+    initialMessage?: string;
+}) {
+    const router = useRouter();
     const [open, setOpen] = useState(false);
-    const [message, setMessage] = useState("");
+    const [message, setMessage] = useState(initialMessage);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleConfirm = async () => {
+        setIsSubmitting(true);
+        setError(null);
+        try {
+            if (isRequest) {
+                await requestMarketResolution({
+                    marketId: market.id,
+                    requestType: 'REFUND',
+                    message: message.trim() || undefined,
+                });
+                setOpen(false);
+                router.refresh();
+            } else {
+                await refundMarket(market, message.trim() || undefined);
+                setOpen(false);
+                router.refresh();
+                router.push("/");
+            }
+        } catch (err) {
+            console.error(err);
+            setError(err instanceof Error ? err.message : "An error occurred");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <>
             <button
-                className="rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 cursor-pointer"
-                onClick={() => setOpen(true)}
+                type="button"
+                className={`rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 cursor-pointer ${styles.pulseGlowOrange}`}
+                onClick={() => {
+                    setMessage(initialMessage || "");
+                    setError(null);
+                    setOpen(true);
+                }}
             >
-                Refund
+                {isRequest ? "Request Refund" : "Refund"}
             </button>
 
             {open && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 z-50">
-                    <div className="bg-white p-6 rounded-lg">
-                        <h2 className="text-xl text-zinc-950 font-semibold mb-4">Confirm Refund</h2>
-                        <p className="text-zinc-600 mb-4">
-                            Are you sure you want to refund this market?
+                    <div className="bg-white p-6 rounded-lg max-w-md w-full shadow-xl">
+                        <h2 className="text-xl text-zinc-950 font-semibold mb-2">
+                            {isRequest ? "Request Market Refund" : "Confirm Refund"}
+                        </h2>
+                        <p className="text-zinc-600 mb-4 text-sm">
+                            {isRequest && "Request admins to refund all money."}
                         </p>
-                        
+
                         <div className="mb-6">
                             <label className="mb-1 block text-sm font-medium text-zinc-700">
                                 Message (Optional)
@@ -39,8 +84,15 @@ export default function RefundButton({ market }: { market: Market }) {
                             />
                         </div>
 
+                        {error && (
+                            <div className="mb-4 rounded-xl bg-rose-50 border border-rose-100 px-3 py-2 text-sm text-rose-700">
+                                {error}
+                            </div>
+                        )}
+
                         <div className="flex justify-end gap-3">
                             <button
+                                type="button"
                                 className="rounded-lg bg-zinc-200 px-4 py-2 text-zinc-700 hover:bg-zinc-300 cursor-pointer"
                                 onClick={() => {
                                     setOpen(false);
@@ -51,28 +103,23 @@ export default function RefundButton({ market }: { market: Market }) {
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 className="rounded-lg bg-orange-500 px-4 py-2 text-white hover:bg-orange-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                                 disabled={isSubmitting}
-                                onClick={async () => {
-                                    setIsSubmitting(true);
-                                    try {
-                                        await refundMarket(market, message.trim() || undefined);
-                                        setOpen(false);
-                                        router.refresh();
-                                        router.push("/");
-                                    } catch (err) {
-                                        console.error(err);
-                                    } finally {
-                                        setIsSubmitting(false);
-                                    }
-                                }}
+                                onClick={handleConfirm}
                             >
-                                {isSubmitting ? "Refunding..." : "Confirm"}
+                                {isSubmitting
+                                    ? isRequest
+                                        ? "Submitting..."
+                                        : "Refunding..."
+                                    : isRequest
+                                        ? "Request Refund"
+                                        : "Confirm"}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
         </>
-    )
+    );
 }

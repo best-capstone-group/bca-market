@@ -178,27 +178,39 @@ export default async function Home() {
               </section>
             ) : (
               <div className="columns-1 md:columns-2 xl:columns-3 2xl:columns-4 gap-6">
-                {visibleMarkets.map((market) =>
-                  (!market.hidden || session.user.admin) && (<div key={market.id} className="break-inside-avoid mb-6">
-                    <MarketCard
-                      key={market.id}
-                      market={{
-                        id: market.id,
-                        title: market.title,
-                        status: market.status,
-                        closeTime: market.closeTime.toISOString(),
-                        resolvedOutcomeId: market.resolvedOutcomeId,
-                        outcomes: (market.outcomes as OutcomeWithPrice[]).map((outcome) => ({
-                          id: outcome.id,
-                          name: outcome.name,
-                          price: outcome.price,
-                        })),
-                        hidden: market.hidden,
-                      }}
-                      isAdmin={session.user.admin || false}
-                    />
-                  </div>)
-                )}
+                {visibleMarkets.map((market) => {
+                  const isCreator = user?.id === market.creatorId.toString();
+                  const isClosed = market.status === "CLOSED";
+                  const isResolved = market.status === "RESOLVED";
+                  const hasRequested = Boolean(market.resolutionRequestedAt);
+
+                  const awaitingResolutionRequest = isCreator && isClosed && !isResolved && !hasRequested;
+                  const resolutionRequested = isCreator && isClosed && !isResolved && hasRequested;
+
+                  return (!market.hidden || session.user.admin) && (
+                    <div key={market.id} className="break-inside-avoid mb-6">
+                      <MarketCard
+                        key={market.id}
+                        market={{
+                          id: market.id,
+                          title: market.title,
+                          status: market.status,
+                          closeTime: market.closeTime.toISOString(),
+                          resolvedOutcomeId: market.resolvedOutcomeId,
+                          outcomes: (market.outcomes as OutcomeWithPrice[]).map((outcome) => ({
+                            id: outcome.id,
+                            name: outcome.name,
+                            price: outcome.price,
+                          })),
+                          hidden: market.hidden,
+                          awaitingResolutionRequest,
+                          resolutionRequested,
+                        }}
+                        isAdmin={session.user.admin || false}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>

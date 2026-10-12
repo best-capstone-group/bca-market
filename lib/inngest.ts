@@ -82,3 +82,17 @@ export type MarketResolvedData = {
 export const marketResolved = eventType('market/resolved', {
     schema: staticSchema<MarketResolvedData>(),
 })
+
+export type MarketResolutionRequestedData = {
+    marketId: number
+    title: string
+    creatorId: number
+    creatorName: string
+    requestType: 'RESOLVE' | 'REFUND'
+    winningOutcomeName?: string
+    message?: string
+}
+
+export const marketResolutionRequested = eventType('market/resolution-requested', {
+    schema: staticSchema<MarketResolutionRequestedData>(),
+})

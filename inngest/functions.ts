@@ -9,6 +9,7 @@ import {
     marketRejected,
     marketRefunded,
     marketResolved,
+    marketResolutionRequested,
 } from '@/lib/inngest'
 
 
@@ -371,8 +372,8 @@ export const onMarketDigest = inngest.createFunction(
              </p>`
         )
 
-        // "name" is internal only — used to identify this broadcast in the Resend dashboard.
-        // "send: true" creates and sends in one API call (no separate send step needed).
+        // "name" is internal only, used to identify this broadcast in the Resend dashboard
+        // "send: true" creates and sends in one API call
         const broadcastName = `digest-${now.toISOString().slice(0, 13)}h` // e.g. "digest-2025-06-15T12h"
 
         await step.run('send-broadcast', () => {
@@ -403,5 +404,46 @@ export const onMarketDigest = inngest.createFunction(
         )
 
         return { sent: true, count: marketCount, broadcastName }
+    }
+)
+
+export const onMarketResolutionRequested = inngest.createFunction(
+    {
+        id: 'market-resolution-requested-notify-admins',
+        triggers: [marketResolutionRequested],
+    },
+    async ({ event, step }) => {
+        const { marketId, title, creatorName, requestType, winningOutcomeName, message } = event.data
+
+        const admins = await step.run('fetch-admins', () =>
+            prisma.user.findMany({
+                where: { admin: true },
+                select: { email: true },
+            })
+        )
+
+        if (admins.length === 0) return
+
+        const actionText = requestType === 'REFUND'
+            ? 'refund this market'
+            : `resolve this market to outcome: <strong>${winningOutcomeName}</strong>`
+
+        await step.run('email-admins', () =>
+            resend.batch.send(
+                admins.map((a) => ({
+                    from: FROM,
+                    to: a.email,
+                    subject: `Resolution Request: "${title}"`,
+                    html: emailHtml(
+                        'Market Resolution Requested',
+                        `<p>The market requester <strong>${creatorName}</strong> has submitted an official resolution request for their market:</p>
+                         <p style="font-size:16px;font-weight:600;color:#09090b;margin:12px 0;">"${title}"</p>
+                         <p><strong>Requested action:</strong> ${actionText}</p>
+                         ${message ? `<p style="margin:16px 0;padding:12px 16px;background:#f4f4f5;border-radius:8px;font-style:italic;color:#52525b;white-space:pre-wrap;">"${message}"</p>` : ''}
+                         <p style="margin-top:24px;"><a href="${process.env.NEXTAUTH_URL}/markets/${marketId}" style="background:#09090b;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:500;font-size:14px;">Review & Resolve Market</a></p>`
+                    ),
+                }))
+            )
+        )
     }
 )

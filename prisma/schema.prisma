@@ -64,10 +64,16 @@ model Market {
   trades            Trade[]
   sentInDigest      Boolean      @default(false)
   hidden            Boolean      @default(false)
+  resolutionRequestedAt      DateTime?
+  resolutionRequestType      String?
+  resolutionRequestOutcomeId Int?
+  resolutionRequestMessage   String?
+  resolutionRequestOutcome   Outcome?     @relation("ResolutionRequestOutcome", fields: [resolutionRequestOutcomeId], references: [id])
 
   @@index([status])
   @@index([closeTime])
   @@index([creatorId])
+  @@index([resolutionRequestedAt])
 }
 
 model Outcome {
@@ -79,6 +85,7 @@ model Outcome {
   market            Market     @relation("MarketOutcomes", fields: [marketId], references: [id], onDelete: Cascade)
   positions         Position[]
   trades            Trade[]
+  resolutionRequestMarkets Market[] @relation("ResolutionRequestOutcome")
 
   @@unique([marketId, name])
   @@index([marketId])

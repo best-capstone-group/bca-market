@@ -132,6 +132,12 @@ export default async function MarketPage({
                     email: true,
                 },
             },
+            resolutionRequestOutcome: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
         },
     });
 
@@ -144,6 +150,11 @@ export default async function MarketPage({
     }
 
     market.status = getNormalizedStatus(market.status, market.closeTime);
+
+    const isCreator = session?.user?.id === market.creator.id.toString();
+    const isClosed = market.status === "CLOSED";
+    const isResolved = market.status === "RESOLVED";
+    const canSubmitResolutionRequest = isCreator && isClosed && !isResolved && !session?.user?.admin;
 
     const { q, cost, prices } = getMarketState(market.outcomes, market.liquidity);
 
@@ -227,6 +238,28 @@ export default async function MarketPage({
                                     <Clock className="mr-1.5 h-3.5 w-3.5 shrink-0" />
                                     <LocalDateTime date={market.closeTime} />
                                 </p>
+
+                                {canSubmitResolutionRequest && market.resolutionRequestedAt && (
+                                    <div className="mt-4 flex items-center gap-3 rounded-2xl bg-blue-50 border border-blue-200 p-2 text-blue-950">
+                                        <div className="text-xs">
+                                            <p className="mt-0.5 text-blue-900/90 font-medium">
+                                                You requested {market.resolutionRequestType === 'REFUND' ? 'a refund' : <>resolution to "{market.resolutionRequestOutcome?.name || 'Selected outcome'}"</>}. Update your request anytime by resubmitting.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+
+                                {session?.user.admin && market.resolutionRequestedAt && market.status !== "RESOLVED" && (
+                                    <div className="mt-4 flex items-center gap-3 rounded-2xl bg-amber-50 border border-amber-200 p-2 text-amber-950">
+                                        <div className="text-xs">
+                                            <p className="mt-0.5 text-amber-900/90 font-medium">
+                                                {creatorName} requested {market.resolutionRequestType === 'REFUND' ? 'a refund' : <>resolution to "{market.resolutionRequestOutcome?.name || 'Selected outcome'}"</>}.
+                                                {market.resolutionRequestMessage ? ` Note: "${market.resolutionRequestMessage}"` : ''}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
@@ -253,8 +286,32 @@ export default async function MarketPage({
 
                                 {(market.status === "OPEN" || market.status === "CLOSED") && session?.user.admin && (
                                     <>
-                                        <ResolveButton market={market} />
-                                        <RefundButton market={market} />
+                                        <ResolveButton
+                                            market={market}
+                                            defaultOutcomeId={market.resolutionRequestOutcomeId}
+                                            initialMessage={market.resolutionRequestMessage || ""}
+                                            
+                                        />
+                                        <RefundButton
+                                            market={market}
+                                            initialMessage={market.resolutionRequestMessage || ""}
+                                        />
+                                    </>
+                                )}
+
+                                {canSubmitResolutionRequest && (
+                                    <>
+                                        <ResolveButton
+                                            market={market}
+                                            isRequest={true}
+                                            defaultOutcomeId={market.resolutionRequestOutcomeId}
+                                            initialMessage={market.resolutionRequestMessage || ""}
+                                        />
+                                        <RefundButton
+                                            market={market}
+                                            isRequest={true}
+                                            initialMessage={market.resolutionRequestMessage || ""}
+                                        />
                                     </>
                                 )}
                             </div>

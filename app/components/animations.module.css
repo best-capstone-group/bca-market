@@ -1,0 +1,25 @@
+.pulseGlowBlue {
+    animation: glowBlue 1.5s ease-in-out infinite;
+}
+
+.pulseGlowOrange {
+    animation: glowOrange 1.5s ease-in-out infinite;
+}
+
+@keyframes glowBlue {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.45);
+  }
+}
+
+@keyframes glowOrange {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(249, 115, 22, 0.5);
+  }
+}

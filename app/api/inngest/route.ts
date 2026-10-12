@@ -7,7 +7,8 @@ import {
     onMarketRejected,
     onMarketRefunded,
     onMarketResolved,
-    onMarketDigest
+    onMarketDigest,
+    onMarketResolutionRequested,
 } from '@/inngest/functions'
 
 export const { GET, POST, PUT } = serve({
@@ -19,6 +20,7 @@ export const { GET, POST, PUT } = serve({
         onMarketRejected,
         onMarketRefunded,
         onMarketResolved,
-        onMarketDigest
+        onMarketDigest,
+        onMarketResolutionRequested,
     ],
 })
