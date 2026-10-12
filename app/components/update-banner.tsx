@@ -48,7 +48,6 @@ export const UPDATE_CARDS: UpdateCardItem[] = [
           <li><Link href="/markets/230" className="text-blue-500">Will Freshman Boys Soccer win against Bergen Catholic?</Link></li>
           <li><Link href="/markets/216" className="text-blue-500">Gabe O. to score against Bergen Catholic?</Link></li>
           <li><Link href="/markets/215" className="text-blue-500">Dante V. to score against Bergen Catholic?</Link></li>
-          <li><Link href="/markets/209" className="text-blue-500">Pranav Chadha over/under 0.5 G/A against Bergen Catholic</Link></li>
           <li><Link href="/markets/162" className="text-blue-500">Will the Bergen Tech Knights Football Team finish off with a winning record?</Link></li>
         </ul>
         If you are the creator of one of these, please submit a resolution request! <br />
