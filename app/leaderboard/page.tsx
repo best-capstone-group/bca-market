@@ -73,7 +73,8 @@ export default async function LeaderboardPage() {
       balance: Number(user.money),
       positionsValue: positionsValue
     }
-  }).sort((a, b) => b.netWorth - a.netWorth);
+  }).filter((user) => !(user.balance === 10000 && user.positionsValue === 0))
+    .sort((a, b) => b.netWorth - a.netWorth);
 
   const unreadCount = await getUnreadNotifCount(session.user.email);
 
@@ -91,7 +92,7 @@ export default async function LeaderboardPage() {
               <StipendButton leaderboard={leaderboard.map(u => ({ id: u.id, name: u.name, netWorth: u.netWorth }))} />
             )}
           </div>
-          <p className="text-sm text-zinc-500 mb-6">Ordered by net worth (cash balance + position value)</p>
+          <p className="text-sm text-zinc-500 mb-6">Ordered by net worth (cash balance + position value). <span className="text-blue-700 font-semibold">Inactive users are hidden.</span></p>
 
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm border-collapse table-fixed">
