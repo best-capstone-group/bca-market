@@ -153,7 +153,7 @@ export default function ResolveButton({
                 />
               </div>
 
-              {winningOutcomeId !== null && (() => {
+              {winningOutcomeId !== null && !isRequest && (() => {
                 const outcome = market.outcomes.find(o => o.id === winningOutcomeId)!;
                 const totalPayout = outcome.sharesOutstanding * 100;
                 return (
