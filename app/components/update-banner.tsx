@@ -44,13 +44,25 @@ export const UPDATE_CARDS: UpdateCardItem[] = [
         The following markets are seeking resolution:
         <ul className="list-disc pl-5 space-y-1">
           <li><Link href="/markets/194" className="text-blue-500">BCTS vs PCTI? (JV Soccer)</Link></li>
-          <li><Link href="/markets/199" className="text-blue-500">How many 100s on the BC+ Fields & Limits test?</Link></li>
           <li><Link href="/markets/230" className="text-blue-500">Will Freshman Boys Soccer win against Bergen Catholic?</Link></li>
-          <li><Link href="/markets/216" className="text-blue-500">Gabe O. to score against Bergen Catholic?</Link></li>
-          <li><Link href="/markets/215" className="text-blue-500">Dante V. to score against Bergen Catholic?</Link></li>
         </ul>
         If you are the creator of one of these, please submit a resolution request! <br />
         Stipends have been paid out to all users with less than $6,000 net worth. 
+      </>
+    ),
+  },
+  {
+    id: 'renew-resolution-requests',
+    title: 'Attention Gabe Ovnanian and Nik P!',
+    content: (
+      <>
+        <p className="text-red-600 font-semibold">Your markets are seeking resolution!</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><Link href="/markets/194" className="text-green-500 hover:underline">BCTS vs PCTI? (JV Soccer)</Link></li>
+          <li><Link href="/markets/230" className="text-green-500 hover:underline">Will Freshman Boys Soccer win against Bergen Catholic?</Link></li>
+        </ul>
+        Please submit a resolution request at your earliest convenience. Thank you! <br />
+        If anyone has additional info, feel free to email <a href="mailto:bcamarketsupport@gmail.com" className="text-blue-600 hover:underline">bcamarketsupport@gmail.com</a>.
       </>
     ),
   },
