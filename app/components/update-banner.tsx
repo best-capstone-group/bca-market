@@ -33,23 +33,6 @@ export const UPDATE_CARDS: UpdateCardItem[] = [
       </>
     ),
   },
-  {
-    id: 'final-resolution-requests',
-    title: 'Final call Gabe Ovnanian and Nik P!',
-    content: (
-      <>
-        This is the <span className="text-red-600 font-semibold">final call</span> for resolution requests for the following markets:
-        <ul className="list-disc pl-5 space-y-1">
-          <li><Link href="/markets/194" className="text-blue-500 hover:underline">BCTS vs PCTI? (JV Soccer)</Link></li>
-          <li><Link href="/markets/230" className="text-blue-500 hover:underline">Will Freshman Boys Soccer win against Bergen Catholic?</Link></li>
-        </ul>
-        These markets will be refunded if no resolution requests are submitted by <span className="font-bold">Monday, October 19th at 5:00 PM</span>. <br />
-        Additional info can be sent to <a href="mailto:bcamarketsupport@gmail.com" className="text-blue-600 hover:underline">
-          bcamarketsupport@gmail.com
-        </a>.
-      </>
-    ),
-  },
 ];
 
 const DISMISSED_CARDS_KEY = 'dismissed_update_cards';

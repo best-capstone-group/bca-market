@@ -41,13 +41,13 @@ export default async function Home() {
     redirect('/auth/signin');
   }
 
-  const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+  const oneDayAgo = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000);
 
   const dbMarkets = await prisma.market.findMany({
     where: {
       OR: [
         { status: { not: 'RESOLVED' } },
-        { resolvedAt: { gte: twoDaysAgo } }
+        { resolvedAt: { gte: oneDayAgo } }
       ]
     },
     orderBy: [{ closeTime: 'asc' }, { createdAt: 'desc' }],
