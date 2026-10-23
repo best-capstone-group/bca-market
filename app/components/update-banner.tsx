@@ -33,6 +33,19 @@ export const UPDATE_CARDS: UpdateCardItem[] = [
       </>
     ),
   },
+  {
+    id: 'discrete-2-fix',
+    title: 'Market Clarification',
+    content: (
+      <>
+        <p className="mb-4">The market <Link href="/markets/111" className="text-blue-600 hover:underline">At least 5 students drop Discrete 2 by November?</Link>
+        {" "}(previously "At least 5 freshmen drop Discrete 2 by November?")
+        has been reworded to clarify that it refers to students currently in Discrete 2, not current freshmen.</p>
+
+        <p>The market was created last year, so the original wording referred to the freshmen of that year. The market is still valid and will resolve as normal.</p>
+      </>
+    )
+  }
 ];
 
 const DISMISSED_CARDS_KEY = 'dismissed_update_cards';
