@@ -23,7 +23,7 @@
     "inngest": "^4.13.0",
     "inngest-cli": "^1.46.0",
     "lucide-react": "^1.26.0",
-    "next": "^16.2.11",
+    "next": "^16.4.2",
     "next-auth": "^4.24.15",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
