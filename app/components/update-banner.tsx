@@ -42,6 +42,15 @@ export const UPDATE_CARDS: UpdateCardItem[] = [
       </>
     ),
   },
+  {
+    id: 'sts-scholars-fix',
+    title: 'Market Update: Number of BCA Regeneron STS Scholars?',
+    content: (
+      <>
+        The previous market has been refunded due to inaccurate options. The new market can be found <Link href="/markets/312" className="text-blue-600 hover:underline">here</Link>.
+      </>
+    ),
+  },
 
 ];
 
