@@ -43,11 +43,12 @@ export const UPDATE_CARDS: UpdateCardItem[] = [
     ),
   },
   {
-    id: 'sts-scholars-fix',
-    title: 'Market Update: Number of BCA Regeneron STS Scholars?',
+    id: 'sam-market-clarify',
+    title: 'Market Clarification',
     content: (
       <>
-        The previous market has been refunded due to inaccurate options. The new market can be found <Link href="/markets/312" className="text-blue-600 hover:underline">here</Link>.
+        The market <Link href="/markets/121" className="text-blue-600 hover:underline">Mr. Sam retires by 2027?</Link>{' '}
+        has been clarified: the market will resolve to Yes if and only if Mr. Sam actually retires by the end of this school year.
       </>
     ),
   },
