@@ -43,12 +43,11 @@ export const UPDATE_CARDS: UpdateCardItem[] = [
     ),
   },
   {
-    id: 'sam-market-clarify',
-    title: 'Market Clarification',
+    id: 'market-repricing',
+    title: 'Market Re-pricing',
     content: (
       <>
-        The market <Link href="/markets/121" className="text-blue-600 hover:underline">Mr. Sam retires by 2027?</Link>{' '}
-        has been clarified: the market will resolve to Yes if and only if Mr. Sam actually retires by the end of this school year.
+        All markets have been repriced and adjusted to give them more liquidity (prices should feel less slippery now). 
       </>
     ),
   },
